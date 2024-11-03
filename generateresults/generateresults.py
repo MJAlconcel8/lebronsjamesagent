@@ -17,13 +17,13 @@ async def generateYoutubeURL(homeTeam: str, awayTeam: str, GamesJustPlayed: str)
     result = set()
     listOfVideos = []
     for channel in os.getenv("VIDEO_CHANNELS").split(", "):
-        youtubeURL = f"{channel}+Highlights+full+game+{homeTeam}+vs+{awayTeam}".replace(" ", "+")
-        statsURL = getUrl(f"{os.getenv('YOUTUBE_SEARCH_LINK')}{youtubeURL}{os.getenv('CRITERIA')}")
-        listOfVideos += re.findall(r"watch\?v=(\S{11})", statsURL.text)
+        matchUps = f"{channel}+Highlights+full+game+{homeTeam}+vs+{awayTeam}".replace(" ", "+") # gets the team matchups
+        YoutubeURL = getUrl(f"{os.getenv('YOUTUBE_SEARCH_LINK')}{matchUps}{os.getenv('CRITERIA')}") # gets a youtube url with the game matchup
+        listOfVideos += re.findall(r"watch\?v=(\S{11})", YoutubeURL.text) # uses a regex to find games with the game matchups and adds to video list
         
     for videos in listOfVideos:
         result.add(videos)
-        if len(result) == 5:
+        if len(result) == 5: # only returns upto find game highlights
             break
     return tuple(f"{os.getenv('YOUTUBE_VIDEO_LINK')}{x}" for x in result)
 
