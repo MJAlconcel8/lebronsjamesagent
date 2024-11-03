@@ -13,6 +13,9 @@ session = HTMLSession()
 def getUrl(url: str) -> HTMLSession:
     return session.get(url)
 
+async def generateLink(linkName: str, url: str) -> str:
+    return f"{linkName}({url})"
+
 async def generateYoutubeURL(homeTeam: str, awayTeam: str, GamesJustPlayed: str) -> tuple:
     result = set()
     listOfVideos = []
@@ -25,7 +28,26 @@ async def generateYoutubeURL(homeTeam: str, awayTeam: str, GamesJustPlayed: str)
         result.add(videos)
         if len(result) == 5: # only returns upto find game highlights
             break
-    return tuple(f"{os.getenv('YOUTUBE_VIDEO_LINK')}{x}" for x in result)
+    youtubeVideoLinks = []
+    for x in result:
+        youtubeVideoLinks.append(f"{os.getenv('YOUTUBE_VIDEO_LINK')}{x}")
+    youtubeVideoLinks= tuple(youtubeVideoLinks)
+    return youtubeVideoLinks
+
+async def generatePlayerInfo(data: dict) -> map:
+    playerInfo = []
+    for player in data:
+        info = f"{player['teamTricode']}/ {player['position']}/ {player['name']}: {player['points']}/ {player['rebounds']}/ {player['assists']}"
+        playerInfo.append(info)
+    return playerInfo
+
+async def generateTeamNames(data: dict) -> str:
+    return f"{data['wins']}-{data['losses']}", data["teamName"], int(data["score"])
+
+async def generatePlayerOutput(playerData: str, teamName: str) -> str:
+    data = playerData.split(": ")
+    playerLink = await generateLink(data[0].split("/ ")[-1], os.getenv("TEAM_URL") + teamName)
+    return f" - {'/ '.join(data[0].split('/ ')[:-1])} {playerLink} {data[1]}"
 
 async def test_generateYoutubeURL():
     # Define environment variables for testing
