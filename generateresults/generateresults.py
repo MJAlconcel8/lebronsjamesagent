@@ -13,7 +13,7 @@ session = HTMLSession()
 def getUrl(url: str) -> HTMLSession:
     return session.get(url)
 
-async def generateLink(linkName: str, url: str) -> str:
+async def generateURL(linkName: str, url: str) -> str:
     return f"{linkName}({url})"
 
 async def generateYoutubeURL(homeTeam: str, awayTeam: str, GamesJustPlayed: str) -> tuple:
@@ -46,8 +46,72 @@ async def generateTeamNames(data: dict) -> str:
 
 async def generatePlayerOutput(playerData: str, teamName: str) -> str:
     data = playerData.split(": ")
-    playerLink = await generateLink(data[0].split("/ ")[-1], os.getenv("TEAM_URL") + teamName)
+    playerLink = await generateURL(data[0].split("/ ")[-1], os.getenv("TEAM_URL") + teamName)
     return f" - {'/ '.join(data[0].split('/ ')[:-1])} {playerLink} {data[1]}"
+
+async def generateResult() -> list:
+    result = []
+
+    data = json.loads(getUrl(await generateURL()).html.find("#__NEXT_DATA__")[0].text)
+
+    try:
+        allGameResults = data['props']['pageProps']['gameCardFeed']['modules'][0]['cards']
+    except Exception as e:
+        print(e)
+        return result
+
+    for gameResults in allGameResults:
+        homeTeamData = gameResults['cardData']['homeTeam'], gameResults['cardData']['awayTeam']
+        awayTeamData = gameResults['cardData']['homeTeam'], gameResults['cardData']['awayTeam']
+        
+        homeTeamPlayerName = await generatePlayerInfo((homeTeamData['teamLeader'], awayTeamData['teamLeader']))
+        awayTeamPlayerName = await generatePlayerInfo((homeTeamData['teamLeader'], awayTeamData['teamLeader']))
+        
+        homeTeamRecord, homeTeamName, homeTeamScore = await generateTeamNames(homeTeamData)
+        homeTeamName = await generateTeamNames(homeTeamData)
+        homeTeamScore = await generateTeamNames(homeTeamData)
+        
+        awayTeamRecord = await generateTeamNames(awayTeamData)
+        awayTeamName = await generateTeamNames(awayTeamData)
+        awayTeamScore = await generateTeamNames(awayTeamData)
+        
+        awayTeamPlayerName = await generatePlayerOutput(awayTeamPlayerName, awayTeamName.split()[-1])
+        homeTeamPlayerName = await generatePlayerOutput(homeTeamPlayerName, homeTeamName.split()[-1])
+        
+        
+        highlights = tuple(
+            await generate_youtube_video_link(
+                homeTeamName,
+                awayTeamName,
+                await date.get_current_date(),
+            )
+        )
+
+        result.append(
+            {
+                f"Away": {
+                    "Team": {
+                        "name": awayTeamName,
+                        "record": awayTeamRecord,
+                        "score": int(awayTeamScore),
+                    },
+                    "Player": {"name": awayTeamPlayerName},
+                },
+                f"Home": {
+                    "Team": {
+                        "name": homeTeamName,
+                        "record": homeTeamRecord,
+                        "score": int(homeTeamScore),
+                    },
+                    "Player": {"name": homeTeamPlayerName},
+                },
+                "Highlights": highlights,
+            }
+        )
+
+    return result
+
+        
 
 async def test_generateYoutubeURL():
     # Define environment variables for testing
