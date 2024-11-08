@@ -16,6 +16,9 @@ def getUrl(url: str) -> HTMLSession:
 async def generateURL(linkName: str, url: str) -> str:
     return f"{linkName}({url})"
 
+async def generateLink(linkName: str, url: str) -> str:
+    return f"[{linkName}]({url})"
+
 async def generateYoutubeURL(homeTeam: str, awayTeam: str, GamesJustPlayed: str) -> tuple:
     result = set()
     listOfVideos = []
@@ -46,7 +49,7 @@ async def generateTeamNames(data: dict) -> str:
 
 async def generatePlayerOutput(playerData: str, teamName: str) -> str:
     data = playerData.split(": ")
-    playerLink = await generateURL(data[0].split("/ ")[-1], os.getenv("TEAM_URL") + teamName)
+    playerLink = await generateLink(data[0].split("/ ")[-1], os.getenv("TEAM_URL") + teamName)
     return f" - {'/ '.join(data[0].split('/ ')[:-1])} {playerLink} {data[1]}"
 
 async def generateResult() -> list:
@@ -111,6 +114,20 @@ async def generateResult() -> list:
 
     return result
 
+async def getNameTeamNames(matchUp: str) -> tuple:
+    teamNames = []
+    for teamName in matchUp.split(" vs "):
+        teamNames.append(teamName.split()[-1])
+    return tuple(teamNames)
+
+async def generateStreamingLinks(url : str) -> dict:
+    htmlFile = getUrl(url).text
+    startingIndex = htmlFile.find(os.getenv("HTML_START_IND"))-2
+    endingIndex = htmlFile.find(os.getenv("HTML_END_IND"))-22
+    return json.loads(htmlFile[startingIndex:endingIndex])[os.getenv("HTML_START_IND")][os.getenv("HTML_END_IND")]
+
+async def generateGameAddress(data:dict) -> tuple:
+    return (data[os.getenv("URL_TAG_START")][os.getenv("URL_MATCH_ID")], data[os.getenv("URL_TAG_START")][os.getenv("URL_ID")])
         
 
 async def test_generateYoutubeURL():
