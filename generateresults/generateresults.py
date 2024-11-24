@@ -128,6 +128,65 @@ async def generateStreamingLinks(url : str) -> dict:
 
 async def generateGameAddress(data:dict) -> tuple:
     return (data[os.getenv("URL_TAG_START")][os.getenv("URL_MATCH_ID")], data[os.getenv("URL_TAG_START")][os.getenv("URL_ID")])
+
+
+async def generateLink(linkName: str, url: str) -> str:
+    return f"[{linkName}{url}]"
+
+async def generateLinkLength(data: list) -> list:
+    listOfLinks = []
+    for i in range(1, len(data)+1):
+        link = data[i-1]
+        generateLink = await generateLink(f"link {i}", link)
+        totalLength = 0
+        for j in listOfLinks:
+            totalLength += len(j)
+        if len(generateLink) + totalLength > 1000:
+            break
+        listOfLinks.append(generateLink)
+    return listOfLinks
+
+async def findGameLinks(url) -> list:
+    streamingLinks = await generateStreamingLinks(url)
+    gameUUid = await generateGameAddress(streamingLinks)
+    uuid = await generateGameAddress(streamingLinks)
+    listOfStreamingLinks = []
+    for collection in streamingLinks["streams"][1:]:
+        for value in collection.values():
+            if value is not None:
+                for i in value.values():
+                    if i is not None:
+                        for j in i:
+                            if j is not None:
+                                stream = j["stream"]
+                                if "iframe" not in stream:
+                                    listOfStreamingLinks.append(stream)
+                                else:
+                                    listOfStreamingLinks.append(f"{os.getenv('STREAM_URL')}/{gameUUid}/{uuid}/{x['uuid']}")
+    return listOfStreamingLinks
+
+async def scrapeAllGames(url: HTMLSession) -> dict:
+    streamingLinks = await generateStreamingLinks(url)
+    gameLocation = streamingLinks["events"]
+    tryAppendingToDictCount = 0
+    dictOfGames = {}
+    for i in gameLocation:
+        try:
+            gameInfo = i["title"].split(" Live Stream -")[0]
+            gameUrl = ( f"{os.getenv('WEB_URL_FOR_GAME')}/{i['event_url']}/{i['match_uuid']}")
+            gameStreamUrls = await findGameLinks(gameUrl)
+            
+            if gameStreamUrls is not None:
+                dictOfGames[gameInfo] = gameStreamUrls
+                tryAppendingToDictCount = 0
+            else:
+                tryAppendingToDictCount += 1
+            if tryAppendingToDictCount == 2:
+                break        
+        except KeyError:
+            pass
+    return dictOfGames        
+
         
 
 async def test_generateYoutubeURL():
