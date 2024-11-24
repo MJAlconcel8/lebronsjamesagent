@@ -2,6 +2,7 @@ import re
 import json
 import asyncio
 import os
+import date.date as date
 from lxml.html.clean import Cleaner
 
 from dotenv import load_dotenv
@@ -13,8 +14,8 @@ session = HTMLSession()
 def getUrl(url: str) -> HTMLSession:
     return session.get(url)
 
-async def generateURL(linkName: str, url: str) -> str:
-    return f"{linkName}({url})"
+async def generateURL() -> str:
+    return f"{os.getenv('START_URL_GAMES')}{await date.getGamesJustPlayed()}"
 
 async def generateLink(linkName: str, url: str) -> str:
     return f"[{linkName}]({url})"
@@ -83,10 +84,10 @@ async def generateResult() -> list:
         
         
         highlights = tuple(
-            await generate_youtube_video_link(
+            await generateYoutubeURL(
                 homeTeamName,
                 awayTeamName,
-                await date.get_current_date(),
+                await date.getGamesJustPlayed(),
             )
         )
 
@@ -162,7 +163,7 @@ async def findGameLinks(url) -> list:
                                 if "iframe" not in stream:
                                     listOfStreamingLinks.append(stream)
                                 else:
-                                    listOfStreamingLinks.append(f"{os.getenv('STREAM_URL')}/{gameUUid}/{uuid}/{x['uuid']}")
+                                    listOfStreamingLinks.append(f"{os.getenv('STREAM_URL')}/{gameUUid}/{uuid}/{j['uuid']}")
     return listOfStreamingLinks
 
 async def scrapeAllGames(url: HTMLSession) -> dict:
